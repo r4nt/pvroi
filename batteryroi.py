@@ -56,9 +56,9 @@ def currentvalue(
 
 def genreturns():
     return returns(
-        years = 15,
+        years = 20,
         contribution = 200, 
-        inflation = 0.02,
+        inflation = 0.06,
         sell_price = 0.082,
         initial_buy_price=0.3,
         efficiency = 0.95,
