@@ -1,25 +1,74 @@
 from numpy_financial import irr
+import math
 
-def flow(pi, Q, p_S, p_B, O_0, d_T, T, P):
-    yield -P
-    for m in range(0, 12*T):
-        output = (O_0/12)*(1 - m*(1-d_T)/(12*T))
-        saved = output*Q*p_B*pow(1+pi/12, m)
-        sold = output*(1-Q)*p_S
-        print("m: %d, output: %f, saved: %f, sold: %f" % (m, output, saved, sold))
+def returns(
+    years,
+    initial_output_pa,
+    self_use,
+    inflation,
+    sell_price,
+    initial_buy_price,
+    module_decay,
+    ):
+    """Generates returns for each month in the given number of years.
+
+    Args:
+        years: Number of years to calculate.
+        inital_output_pa: Output / year in kWh in the first year.
+        self_use: Fraction of output consumed by user, the rest is sold.
+        inflration: Inflation rate, e.g. 0.02.
+        sell_price: Sell price  / kWh in EUR, e.g. 0.082.
+        initial_buy_price: Initial price / kWh to buy energy, e.g. 0.3.
+        module_decay: Module effectiveness at the end of the period, e.g. 0.8.
+    """
+    for month in range(0, 12*years):
+        decay = (1 - month*(1-module_decay)/(12*years))
+        output = (initial_output_pa/12) * decay
+        buy_price = initial_buy_price * math.pow(1+inflation/12, month) 
+        saved = output * self_use * buy_price
+        sold = output * (1-self_use) * sell_price
         yield saved + sold
 
-pi = 0.02
-Q = 0.25
-p_S=0.082
-p_B=0.3
-O_0 = 900
-d_T = 0.8
-T=25
-P=2000
+def cashflow(
+    price,
+    returns,
+    ):
+    """Generates a cashflow for a PV investment.
+    
+    Args:
+        price: Price of the installation (positive).
+        returns: Generator for the returns in the examined period.
+    """
+    yield -price
+    for r in returns:
+        yield r
 
-g = flow(pi, Q, p_S, p_B, O_0, d_T, T, P)
-for v in g:
-    print(v)
+def currentvalue(
+    rate,
+    returns
+):
+    value = 0
+    for m, r in enumerate(returns):
+        value += r / math.pow(1 + rate/12, m)
+    return value
 
-print(irr(list(flow(pi, Q, p_S, p_B, O_0, d_T, T, P))))
+def genreturns():
+    return returns(
+        years = 25,
+        initial_output_pa = 900,
+        self_use = 0.25,
+        inflation = 0.02,
+        sell_price = 0.082,
+        initial_buy_price=0.3,
+        module_decay = 0.8,
+    )
+
+def gencashflow():
+    return cashflow(
+        1600,
+        genreturns(),
+    )
+
+print(12*irr(list(gencashflow())))
+
+print(currentvalue(0.06, genreturns()))
