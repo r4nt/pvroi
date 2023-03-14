@@ -9,9 +9,117 @@
             grid-row-gap: 1em;
         }
     </style>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.3/jquery.min.js"></script>
     <script>
-        function test() {
-            console.log(document.getElementById("battery_years").value)
+        function netPresentValue(cashflow, r) {
+            let NPV = 0;
+            cashflow.forEach((amount, index) => {
+                NPV += amount / Math.pow(1 + r, index);
+            });
+            return NPV;
+        };
+
+        function derivateNetPresentValue(cashflow, r) {
+            let dNPV = 0;
+            cashflow.forEach((amount, index) => {
+                dNPV += amount * index / Math.pow(1 + r, index + 1);
+            });
+            return -1 * dNPV;
+        }
+
+        // https://en.wikipedia.org/wiki/Internal_rate_of_return
+        function irr(cashflow) {
+            if (cashflow.length < 2) return 0;
+            const N = cashflow.length-1;
+            let r = function(cashflow) {
+                let receive = 0;
+                let invest = 0;
+                cashflow.forEach(amount => {
+                    if (amount < 0)
+                        invest += -amount;
+                    else
+                        receive += amount;
+                });
+                return Math.pow(receive/invest, 1/N)-1;
+            }(cashflow);
+            for (let iteration = 0; iteration < 20; iteration++) {
+                let NPV = netPresentValue(cashflow, r);
+                let dNPV = derivateNetPresentValue(cashflow, r);
+                let rOld = r;
+                r = r - (NPV / dNPV);
+                if (Math.abs(r - rOld < 0.00001))
+                    break;
+            }
+            return r.toFixed(4);
+        }
+
+        function* panelsReturn(inflation, sell_price, initial_buy_price,
+            years, initial_output_pa, self_use, module_decay) {
+            for (let month = 0; month < 12 * years; month++) {
+                const decay = 1 - month*(1-module_decay)/(12*years);
+                const output = (initial_output_pa/12) * decay;
+                const buy_price = initial_buy_price * Math.pow(1+inflation/12, month);
+                const saved = output * self_use * buy_price;
+                const sold = output * (1-self_use) * sell_price;
+                yield saved + sold;
+            }
+        }
+
+        function* panelsCashflow(price, returns) {
+            yield -price;
+            for (let r of returns) {
+                yield r;
+            };
+        }
+
+        function getBasics() {
+            return {
+                inflation: $("#inflation").val(),
+                sell_price: $("#sell_price").val(),
+                initial_buy_price: $("#initial_buy_price").val(),
+            };
+        }
+
+        function getPanels() {
+            return {
+                years: $("#panels_years").val(),
+                initial_output_pa: $("#panels_initial_output_pa").val(),
+                self_use: $("#panels_self_use").val(),
+                decay: $("#panels_decay").val(),
+            }
+        }
+
+        function computePanels() {
+            const basics = getBasics();
+            const panels = getPanels();
+            const ret = panelsReturn(
+                basics.inflation,
+                basics.sell_price,
+                basics.initial_buy_price,
+                panels.years,
+                panels.initial_output_pa,
+                panels.self_use,
+                panels.decay,
+            );
+            if ($("#panels_select_method").val() === "irr_from_price") {
+                const cf = panelsCashflow($("#panels_price").val(), ret);
+                const panels_irr = irr([...cf]) * 12;
+                $("#panels_irr").val(panels_irr);
+                $("#panels_irr").prop("readonly", true);
+                $("#panels_price").prop("readonly", false);
+                $("#panels_price").css("background-collor", "gray");
+            } else {
+                const panels_price = netPresentValue([...ret], $("#panels_irr").val() / 12);
+                console.log(panels_price);
+                $("#panels_price").val(panels_price);
+                $("#panels_irr").prop("readonly", false);
+                $("#panels_price").prop("readonly", true);
+                $("#panels_irr").css("background-collor", "gray");
+            }
+        }
+
+        function computeBattery() {
+            console.log("battery");
         }
     </script>
 </html>
@@ -39,7 +147,7 @@
         <input type="number" id="panels_decay" value="0.8" onchange="computePanels()"/>
         <label for="panels_input_type">Whether to calculate the IRR from the given price, or
             the price based on a target IRR:</label>
-        <select id="panels_input_cost" onchange="computePanels()">
+        <select id="panels_select_method" onchange="computePanels()">
             <option value="irr_from_price">IRR</option>
             <option value="price_from_irr">Price</option>
         </select>
