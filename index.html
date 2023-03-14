@@ -53,19 +53,22 @@
             return r.toFixed(4);
         }
 
-        function* panelsReturn(inflation, sell_price, initial_buy_price,
+        function* panelsReturn(
+            inflation, sell_price, initial_buy_price,
             years, initial_output_pa, self_use, module_decay) {
             for (let month = 0; month < 12 * years; month++) {
                 const decay = 1 - month*(1-module_decay)/(12*years);
-                const output = (initial_output_pa/12) * decay;
                 const buy_price = initial_buy_price * Math.pow(1+inflation/12, month);
+                const output = (initial_output_pa/12) * decay;
+
                 const saved = output * self_use * buy_price;
                 const sold = output * (1-self_use) * sell_price;
+
                 yield saved + sold;
             }
         }
 
-        function* panelsCashflow(price, returns) {
+        function* cashflow(price, returns) {
             yield -price;
             for (let r of returns) {
                 yield r;
@@ -102,7 +105,7 @@
                 panels.decay,
             );
             if ($("#panels_select_method").val() === "irr_from_price") {
-                const cf = panelsCashflow($("#panels_price").val(), ret);
+                const cf = cashflow($("#panels_price").val(), ret);
                 const panels_irr = irr([...cf]) * 12;
                 $("#panels_irr").val(panels_irr.toFixed(2));
                 $("#panels_irr").prop("readonly", true);
@@ -120,12 +123,69 @@
             }
         }
 
+        function getBattery() {
+            return {
+                years: $("#battery_years").val(),
+                contribution: $("#battery_contribution").val(),
+                output_per_kwh: $("#battery_output_per_kwh").val(),
+                decay: $("#battery_decay").val(),
+            };
+        }
+
+        function* batteryReturn(
+            inflation, sell_price, initial_buy_price,
+            years, contribution, output_per_kwh, battery_decay) {
+            for (let month = 0; month < 12 * years; month++) {
+                const decay = 1 - month*(1-battery_decay)/(12*years);
+                const buy_price = initial_buy_price * Math.pow(1+inflation/12, month);
+
+                const sell_less = (contribution * decay / 12) * sell_price;
+                const buy_less = (contribution * decay / 12) * output_per_kwh * buy_price;
+
+                yield buy_less - sell_less;
+            }
+        }
+
         function computeBattery() {
-            console.log("battery");
+            const basics = getBasics();
+            const battery = getBattery();
+            console.log(basics);
+            console.log(battery);
+            const ret = batteryReturn(
+                basics.inflation,
+                basics.sell_price,
+                basics.initial_buy_price,
+                battery.years,
+                battery.contribution,
+                battery.output_per_kwh,
+                battery.decay,
+            );
+            if ($("#battery_select_method").val() === "irr_from_price") {
+                const cf = cashflow($("#battery_price").val(), ret);
+                const battery_irr = irr([...cf]) * 12;
+                $("#battery_irr").val(battery_irr.toFixed(2));
+                $("#battery_irr").prop("readonly", true);
+                $("#battery_irr").css("background-color", "#ccffcc");
+                $("#battery_price").prop("readonly", false);
+                $("#battery_price").css("background-color", "white");
+            } else {
+                const battery_price = netPresentValue([...ret], $("#battery_irr").val() / 12);
+                console.log(battery_price);
+                $("#battery_price").val(battery_price.toFixed(2));
+                $("#battery_irr").prop("readonly", false);
+                $("#battery_irr").css("background-color", "white");
+                $("#battery_price").prop("readonly", true);
+                $("#battery_price").css("background-color", "#ccffcc");
+            }
+        }
+
+        function init() {
+            computePanels();
+            computeBattery();
         }
     </script>
 </html>
-<body onload="computePanels()">
+<body onload="init()">
     <fieldset class="input_grid">
         <legend>Basics</legend>
         <label for="inflation">Average expected inflation rate:</label>
@@ -147,14 +207,14 @@
         <input type="number" id="panels_self_use" value="0.25" onchange="computePanels()"/>
         <label for="panels_decay">Panel efficiency at the end of the period.</label>
         <input type="number" id="panels_decay" value="0.8" onchange="computePanels()"/>
-        <label for="panels_input_type">Whether to calculate the IRR from the given price, or
+        <label for="panels_select_method">Whether to calculate the IRR from the given price, or
             the price based on a target IRR:</label>
         <select id="panels_select_method" onchange="computePanels()">
             <option value="irr_from_price">IRR</option>
             <option value="price_from_irr">Price</option>
         </select>
         <label for="panels_price">Price:</label>
-        <input type="number" id="panels_price" value="1000" onchange="computePanels()"/>
+        <input type="number" id="panels_price" value="1800" onchange="computePanels()"/>
         <label for="panels_irr">Internal rate of return:</label>
         <input type="number" id="panels_irr" onchange="computePanels()" readonly="true"/>
     </fieldset>
@@ -171,16 +231,16 @@
             including loss from additional power use:</label>
         <input type="number" id="battery_output_per_kwh" value="0.9" onchange="computeBattery()"/>
         <label for="battery_decay">Battery efficiency at the end of the period:</label>
-        <input type="number" id="battery_efficiency" value="0.8" onchange="computeBattery()"/>
-        <label for="panels_input_type">Whether to calculate the IRR from the given price, or
+        <input type="number" id="battery_decay" value="0.8" onchange="computeBattery()"/>
+        <label for="battery_select_method">Whether to calculate the IRR from the given price, or
             the price based on a target IRR:</label>
-        <select id="panels_input_cost" onchange="computeBattery()">
+        <select id="battery_select_method" onchange="computeBattery()">
             <option value="irr_from_price">IRR</option>
             <option value="price_from_irr">Price</option>
         </select>
-        <label for="panels_price">Price:</label>
-        <input type="number" id="panels_price" value="1000" onchange="computeBattery()"/>
-        <label for="panels_irr">Internal rate of return:</label>
-        <input type="number" id="panels_irr" onchange="computeBattery()" readonly="true"/>
+        <label for="battery_price">Price:</label>
+        <input type="number" id="battery_price" value="800" onchange="computeBattery()"/>
+        <label for="battery_irr">Internal rate of return:</label>
+        <input type="number" id="battery_irr" onchange="computeBattery()" readonly="true"/>
     </fieldset>
 </body>
