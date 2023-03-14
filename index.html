@@ -104,17 +104,19 @@
             if ($("#panels_select_method").val() === "irr_from_price") {
                 const cf = panelsCashflow($("#panels_price").val(), ret);
                 const panels_irr = irr([...cf]) * 12;
-                $("#panels_irr").val(panels_irr);
+                $("#panels_irr").val(panels_irr.toFixed(2));
                 $("#panels_irr").prop("readonly", true);
+                $("#panels_irr").css("background-color", "#ccffcc");
                 $("#panels_price").prop("readonly", false);
-                $("#panels_price").css("background-collor", "gray");
+                $("#panels_price").css("background-color", "white");
             } else {
                 const panels_price = netPresentValue([...ret], $("#panels_irr").val() / 12);
                 console.log(panels_price);
-                $("#panels_price").val(panels_price);
+                $("#panels_price").val(panels_price.toFixed(2));
                 $("#panels_irr").prop("readonly", false);
+                $("#panels_irr").css("background-color", "white");
                 $("#panels_price").prop("readonly", true);
-                $("#panels_irr").css("background-collor", "gray");
+                $("#panels_price").css("background-color", "#ccffcc");
             }
         }
 
@@ -123,7 +125,7 @@
         }
     </script>
 </html>
-<body>
+<body onload="computePanels()">
     <fieldset class="input_grid">
         <legend>Basics</legend>
         <label for="inflation">Average expected inflation rate:</label>
