@@ -2,9 +2,75 @@
     <head>
         <title>PV ROI calculator</title>
     </head>
+    <style>
+        .input_grid {
+            display: grid;
+            grid-template-columns: auto 5em;
+            grid-row-gap: 1em;
+        }
+    </style>
     <script>
+        function test() {
+            console.log(document.getElementById("battery_years").value)
+        }
     </script>
 </html>
 <body>
-    <div>Hi there</div>
+    <fieldset class="input_grid">
+        <legend>Basics</legend>
+        <label for="inflation">Average expected inflation rate:</label>
+        <input type="number" id="inflation" value="0.02" onchange="computePanels()"/>
+        <label for="sell_price">Sell price per kWh in currency:</label>
+        <input type="number" id="sell_price" value="0.082" onchange="computePanels()"/>
+        <label for="initial_buy_price">Initial price per kWh in currency; will grow with inflation:</label>
+        <input type="number" id="initial_buy_price" value="0.35" onchange="computePanels()"/>
+    </fieldset>
+    <fieldset class="input_grid">
+        <legend>Panels</legend>
+        <label for="panels_years">Number of years you plan to use the panels:</label>
+        <input type="number" id="panels_years" value="25" onchange="computePanels()"/>
+        <label for="panels_initial_output_pa">Initial output of the panels per year in kWh.
+            Optimally taken from a simulation (e.g. PVSol). As a rough estimate, use 900 kWh for
+            each kWp installed:</label>
+        <input type="number" id="panels_initial_output_pa" value="900" onchange="computePanels()"/>
+        <label for="panels_self_use">Fraction of output comsumed by yourself.</label>
+        <input type="number" id="panels_self_use" value="0.25" onchange="computePanels()"/>
+        <label for="panels_decay">Panel efficiency at the end of the period.</label>
+        <input type="number" id="panels_decay" value="0.8" onchange="computePanels()"/>
+        <label for="panels_input_type">Whether to calculate the IRR from the given price, or
+            the price based on a target IRR:</label>
+        <select id="panels_input_cost" onchange="computePanels()">
+            <option value="irr_from_price">IRR</option>
+            <option value="price_from_irr">Price</option>
+        </select>
+        <label for="panels_price">Price:</label>
+        <input type="number" id="panels_price" value="1000" onchange="computePanels()"/>
+        <label for="panels_irr">Internal rate of return:</label>
+        <input type="number" id="panels_irr" onchange="computePanels()" readonly="true"/>
+    </fieldset>
+    <fieldset class="input_grid">
+        <legend>Battery</legend>
+        <label for="battery_years">Number of years you plan to use the battery:</label>
+        <input type="number" id="battery_years" value="10" onchange="computeBattery()"/>
+        <label for="battery_contribution">Overall energy taken from the battery per year in kWh. If the
+            battery is perfectly sized to be fully charged/discharged each day with enough
+            PV energy production, roughly 200 times the battery size. Keep in mind that this
+            number will be lower for oversized batteries:</label>
+        <input type="number" id="battery_contribution" value="200" onchange="computeBattery()"/>
+        <label for="battery_output_per_kwh">Output of the battery per kWh of power going into the battery,
+            including loss from additional power use:</label>
+        <input type="number" id="battery_output_per_kwh" value="0.9" onchange="computeBattery()"/>
+        <label for="battery_decay">Battery efficiency at the end of the period:</label>
+        <input type="number" id="battery_efficiency" value="0.8" onchange="computeBattery()"/>
+        <label for="panels_input_type">Whether to calculate the IRR from the given price, or
+            the price based on a target IRR:</label>
+        <select id="panels_input_cost" onchange="computeBattery()">
+            <option value="irr_from_price">IRR</option>
+            <option value="price_from_irr">Price</option>
+        </select>
+        <label for="panels_price">Price:</label>
+        <input type="number" id="panels_price" value="1000" onchange="computeBattery()"/>
+        <label for="panels_irr">Internal rate of return:</label>
+        <input type="number" id="panels_irr" onchange="computeBattery()" readonly="true"/>
+    </fieldset>
 </body>
