@@ -180,22 +180,40 @@
         }
 
         function init() {
-            computePanels();
-            computeBattery();
+            const params = new URLSearchParams(location.search);
+            const show_panels = params.get("show_panels");
+            if (show_panels === "on") {
+                $("#show_panels").attr("checked", true);
+                computePanels(params);
+            } else {
+                $("#panels").hide();
+            }
+            const show_battery = params.get("show_battery");
+            if (show_battery === "on") {
+                $("#show_battery").attr("checked", true);
+              computeBattery(params);
+            } else {
+                $("#battery").hide();
+            }
         }
     </script>
 </html>
 <body onload="init()">
+    <form method="get">
     <fieldset class="input_grid">
         <legend>Basics</legend>
         <label for="inflation">Average expected inflation rate:</label>
-        <input type="number" id="inflation" value="0.02" onchange="computePanels()"/>
+        <input type="number" id="inflation" name="influation" value="0.02" onchange="computePanels()"/>
         <label for="sell_price">Sell price per kWh in currency:</label>
-        <input type="number" id="sell_price" value="0.082" onchange="computePanels()"/>
+        <input type="number" id="sell_price" name="sell_price" value="0.082" onchange="computePanels()"/>
         <label for="initial_buy_price">Initial price per kWh in currency; will grow with inflation:</label>
-        <input type="number" id="initial_buy_price" value="0.35" onchange="computePanels()"/>
+        <input type="number" id="initial_buy_price" name="initial_buy_price" value="0.35" onchange="computePanels()"/>
+        <label for="show_panels">Panels:</label>
+        <input type="checkbox" id="show_panels" name="show_panels" onchange="this.form.submit()"/>
+        <label for="show_battery">Battery:</label>
+        <input type="checkbox" id="show_battery" name="show_battery" onchange="this.form.submit()"/>
     </fieldset>
-    <fieldset class="input_grid">
+    <fieldset id="panels" class="input_grid">
         <legend>Panels</legend>
         <label for="panels_years">Number of years you plan to use the panels:</label>
         <input type="number" id="panels_years" value="25" onchange="computePanels()"/>
@@ -218,7 +236,7 @@
         <label for="panels_irr">Internal rate of return:</label>
         <input type="number" id="panels_irr" onchange="computePanels()" readonly="true"/>
     </fieldset>
-    <fieldset class="input_grid">
+    <fieldset id="battery" class="input_grid">
         <legend>Battery</legend>
         <label for="battery_years">Number of years you plan to use the battery:</label>
         <input type="number" id="battery_years" value="10" onchange="computeBattery()"/>
@@ -243,4 +261,5 @@
         <label for="battery_irr">Internal rate of return:</label>
         <input type="number" id="battery_irr" onchange="computeBattery()" readonly="true"/>
     </fieldset>
+    </form>
 </body>
