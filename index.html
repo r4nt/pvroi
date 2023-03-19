@@ -114,7 +114,6 @@
                 $("#panels_price").css("background-color", "white");
             } else {
                 const panels_price = netPresentValue([...ret], $("#panels_irr").val() / 12);
-                console.log(panels_price);
                 $("#panels_price").val(panels_price.toFixed(2));
                 $("#panels_irr").prop("readonly", false);
                 $("#panels_irr").css("background-color", "white");
@@ -149,8 +148,6 @@
         function computeBattery() {
             const basics = getBasics();
             const battery = getBattery();
-            console.log(basics);
-            console.log(battery);
             const ret = batteryReturn(
                 basics.inflation,
                 basics.sell_price,
@@ -170,7 +167,6 @@
                 $("#battery_price").css("background-color", "white");
             } else {
                 const battery_price = netPresentValue([...ret], $("#battery_irr").val() / 12);
-                console.log(battery_price);
                 $("#battery_price").val(battery_price.toFixed(2));
                 $("#battery_irr").prop("readonly", false);
                 $("#battery_irr").css("background-color", "white");
@@ -179,19 +175,48 @@
             }
         }
 
+        function initFromParam(params, name) {
+            if (params.get(name) !== null) {
+                $("#" + name).val(params.get(name));
+            }
+        }
+
+        function updateInputs(params) {
+            initFromParam(params, "inflation");
+            initFromParam(params, "sell_price");
+            initFromParam(params, "initial_buy_price");
+            initFromParam(params, "show_panels");
+            initFromParam(params, "show_battery");
+            initFromParam(params, "panels_years");
+            initFromParam(params, "panels_initial_output_pa");
+            initFromParam(params, "panels_self_use");
+            initFromParam(params, "panels_decay");
+            initFromParam(params, "panels_select_method");
+            initFromParam(params, "panels_price");
+            initFromParam(params, "panels_irr");
+            initFromParam(params, "battery_years");
+            initFromParam(params, "battery_contribution");
+            initFromParam(params, "battery_output_per_kwh");
+            initFromParam(params, "battery_decay");
+            initFromParam(params, "battery_select_method");
+            initFromParam(params, "battery_price");
+            initFromParam(params, "battery_irr");
+        }
+
         function init() {
             const params = new URLSearchParams(location.search);
+            updateInputs(params);
             const show_panels = params.get("show_panels");
             if (show_panels === "on") {
                 $("#show_panels").attr("checked", true);
-                computePanels(params);
+                computePanels();
             } else {
                 $("#panels").hide();
             }
             const show_battery = params.get("show_battery");
             if (show_battery === "on") {
                 $("#show_battery").attr("checked", true);
-              computeBattery(params);
+              computeBattery();
             } else {
                 $("#battery").hide();
             }
@@ -200,66 +225,66 @@
 </html>
 <body onload="init()">
     <form method="get">
-    <fieldset class="input_grid">
-        <legend>Basics</legend>
-        <label for="inflation">Average expected inflation rate:</label>
-        <input type="number" id="inflation" name="influation" value="0.02" onchange="computePanels()"/>
-        <label for="sell_price">Sell price per kWh in currency:</label>
-        <input type="number" id="sell_price" name="sell_price" value="0.082" onchange="computePanels()"/>
-        <label for="initial_buy_price">Initial price per kWh in currency; will grow with inflation:</label>
-        <input type="number" id="initial_buy_price" name="initial_buy_price" value="0.35" onchange="computePanels()"/>
-        <label for="show_panels">Panels:</label>
-        <input type="checkbox" id="show_panels" name="show_panels" onchange="this.form.submit()"/>
-        <label for="show_battery">Battery:</label>
-        <input type="checkbox" id="show_battery" name="show_battery" onchange="this.form.submit()"/>
-    </fieldset>
-    <fieldset id="panels" class="input_grid">
-        <legend>Panels</legend>
-        <label for="panels_years">Number of years you plan to use the panels:</label>
-        <input type="number" id="panels_years" value="25" onchange="computePanels()"/>
-        <label for="panels_initial_output_pa">Initial output of the panels per year in kWh.
-            Optimally taken from a simulation (e.g. PVSol). As a rough estimate, use 900 kWh for
-            each kWp installed:</label>
-        <input type="number" id="panels_initial_output_pa" value="900" onchange="computePanels()"/>
-        <label for="panels_self_use">Fraction of output comsumed by yourself.</label>
-        <input type="number" id="panels_self_use" value="0.25" onchange="computePanels()"/>
-        <label for="panels_decay">Panel efficiency at the end of the period.</label>
-        <input type="number" id="panels_decay" value="0.8" onchange="computePanels()"/>
-        <label for="panels_select_method">Whether to calculate the IRR from the given price, or
-            the price based on a target IRR:</label>
-        <select id="panels_select_method" onchange="computePanels()">
-            <option value="irr_from_price">IRR</option>
-            <option value="price_from_irr">Price</option>
-        </select>
-        <label for="panels_price">Price:</label>
-        <input type="number" id="panels_price" value="1800" onchange="computePanels()"/>
-        <label for="panels_irr">Internal rate of return:</label>
-        <input type="number" id="panels_irr" onchange="computePanels()" readonly="true"/>
-    </fieldset>
-    <fieldset id="battery" class="input_grid">
-        <legend>Battery</legend>
-        <label for="battery_years">Number of years you plan to use the battery:</label>
-        <input type="number" id="battery_years" value="10" onchange="computeBattery()"/>
-        <label for="battery_contribution">Overall energy taken from the battery per year in kWh. If the
-            battery is perfectly sized to be fully charged/discharged each day with enough
-            PV energy production, roughly 200 times the battery size. Keep in mind that this
-            number will be lower for oversized batteries:</label>
-        <input type="number" id="battery_contribution" value="200" onchange="computeBattery()"/>
-        <label for="battery_output_per_kwh">Output of the battery per kWh of power going into the battery,
-            including loss from additional power use:</label>
-        <input type="number" id="battery_output_per_kwh" value="0.9" onchange="computeBattery()"/>
-        <label for="battery_decay">Battery efficiency at the end of the period:</label>
-        <input type="number" id="battery_decay" value="0.8" onchange="computeBattery()"/>
-        <label for="battery_select_method">Whether to calculate the IRR from the given price, or
-            the price based on a target IRR:</label>
-        <select id="battery_select_method" onchange="computeBattery()">
-            <option value="irr_from_price">IRR</option>
-            <option value="price_from_irr">Price</option>
-        </select>
-        <label for="battery_price">Price:</label>
-        <input type="number" id="battery_price" value="800" onchange="computeBattery()"/>
-        <label for="battery_irr">Internal rate of return:</label>
-        <input type="number" id="battery_irr" onchange="computeBattery()" readonly="true"/>
-    </fieldset>
+        <fieldset class="input_grid">
+            <legend>Basics</legend>
+            <label for="inflation">Average expected inflation rate:</label>
+            <input type="number" id="inflation" name="inflation" value="0.02" onchange="this.form.submit()"/>
+            <label for="sell_price">Sell price per kWh in quurrency:</label>
+            <input type="number" id="sell_price" name="sell_price" value="0.082" onchange="this.form.submit()"/>
+            <label for="initial_buy_price">Initial price per kWh in currency; will grow with inflation:</label>
+            <input type="number" id="initial_buy_price" name="initial_buy_price" value="0.35" onchange="this.form.submit()"/>
+            <label for="show_panels">Panels:</label>
+            <input type="checkbox" id="show_panels" name="show_panels" onchange="this.form.submit()"/>
+            <label for="show_battery">Battery:</label>
+            <input type="checkbox" id="show_battery" name="show_battery" onchange="this.form.submit()"/>
+        </fieldset>
+        <fieldset id="panels" class="input_grid">
+            <legend>Panels</legend>
+            <label for="panels_years">Number of years you plan to use the panels:</label>
+            <input type="number" id="panels_years" name="panels_years" value="25" onchange="this.form.submit()"/>
+            <label for="panels_initial_output_pa">Initial output of the panels per year in kWh.
+                Optimally taken from a simulation (e.g. PVSol). As a rough estimate, use 900 kWh for
+                each kWp installed:</label>
+            <input type="number" id="panels_initial_output_pa" name="panels_initial_output_pa" value="900" onchange="this.form.submit()"/>
+            <label for="panels_self_use">Fraction of output comsumed by yourself.</label>
+            <input type="number" id="panels_self_use" name="panels_self_use" value="0.25" onchange="this.form.submit()"/>
+            <label for="panels_decay">Panel efficiency at the end of the period.</label>
+            <input type="number" id="panels_decay" name="panels_decay" value="0.8" onchange="this.form.submit()"/>
+            <label for="panels_select_method">Whether to calculate the IRR from the given price, or
+                the price based on a target IRR:</label>
+            <select id="panels_select_method" name="panels_select_method" onchange="this.form.submit()">
+                <option value="irr_from_price">IRR</option>
+                <option value="price_from_irr">Price</option>
+            </select>
+            <label for="panels_price">Price:</label>
+            <input type="number" id="panels_price" name="panels_price" value="1800" onchange="this.form.submit()"/>
+            <label for="panels_irr">Internal rate of return:</label>
+            <input type="number" id="panels_irr" name="panels_irr" onchange="this.form.submit()" readonly="true"/>
+        </fieldset>
+        <fieldset id="battery" class="input_grid">
+            <legend>Battery</legend>
+            <label for="battery_years">Number of years you plan to use the battery:</label>
+            <input type="number" id="battery_years" name="battery_years" value="10" onchange="this.form.submit()"/>
+            <label for="battery_contribution">Overall energy taken from the battery per year in kWh. If the
+                battery is perfectly sized to be fully charged/discharged each day with enough
+                PV energy production, roughly 200 times the battery size. Keep in mind that this
+                number will be lower for oversized batteries:</label>
+            <input type="number" id="battery_contribution" name="battery_contribution" value="200" onchange="this.form.submit()"/>
+            <label for="battery_output_per_kwh">Output of the battery per kWh of power going into the battery,
+                including loss from additional power use:</label>
+            <input type="number" id="battery_output_per_kwh" name="battery_output_per_kwh" value="0.9" onchange="this.form.submit()"/>
+            <label for="battery_decay">Battery efficiency at the end of the period:</label>
+            <input type="number" id="battery_decay" name="battery_decay" value="0.8" onchange="this.form.submit()"/>
+            <label for="battery_select_method">Whether to calculate the IRR from the given price, or
+                the price based on a target IRR:</label>
+            <select id="battery_select_method" name="battery_select_method" onchange="this.form.submit()">
+                <option value="irr_from_price">IRR</option>
+                <option value="price_from_irr">Price</option>
+            </select>
+            <label for="battery_price">Price:</label>
+            <input type="number" id="battery_price" name="battery_price" value="800" onchange="this.form.submit()"/>
+            <label for="battery_irr">Internal rate of return:</label>
+            <input type="number" id="battery_irr" name="battery_irr" onchange="this.form.submit()" readonly="true"/>
+        </fieldset>
     </form>
 </body>
